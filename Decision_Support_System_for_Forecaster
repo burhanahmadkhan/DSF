@@ -1,0 +1,554 @@
+*****GFSPLUS_DECISION_SUPPORT_SYSTEM_FOR_FORECASTERS**********
+*****Authored by Burhan Ahmad***********
+*****Liscenced under GNU v3.0***********
+*****https://github.com/burhanahmadkhan/*********
+************************************************************
+************************************************************
+
+*********************Download_gpm**********************
+'!./gpm_nasa.sh'
+*********************************************************
+
+'reinit'
+***http://www.nomads.ncep.noaa.gov:80/dods/gfs_0p25/gfs20180502/gfs_0p25_00z
+prompt 'Enter forecast date (yyyymmdd) --> '
+pull date
+prompt 'Enter forecast hour (hh)-->'
+pull hour
+prompt 'Enter day before yesterdays date (yyyymmdd) --> '
+pull dateold
+prompt 'Enter yesterdays hour (hh)-->'
+pull hourold
+
+
+************************
+***Open forecast data file
+************************
+'reinit'
+_baseurl = 'http://nomads.ncep.noaa.gov:80/dods/'
+_dataset = 'gfs_0p25/gfs'date'/gfs_0p25_'hour'z'
+'sdfopen '_baseurl%_dataset
+if (rc) ; return ; endif
+*********************************************************
+*************Acquirng GFS Forecast Files**********************
+********************************************************
+
+'set lat 28 38'
+'set lon 67 83'
+'set t 1'
+'define hgtsfc = hgtsfc'
+'set t 3 80' 
+'define apcpsfc = apcpsfc'
+'set sdfwrite -nc4 C:/OpenGrADS-2.2/gfs_0p25_'date'_'hour'_pr.nc'
+'sdfwrite apcpsfc'
+'set sdfwrite -nc4 C:/OpenGrADS-2.2/gfs_0p25_'date'_'hour'_hgtsfc.nc'
+'sdfwrite hgtsfc'
+'close 1'
+************************
+***Open day before yesterdays data file
+************************
+'reinit'
+_baseurl = 'http://nomads.ncep.noaa.gov:80/dods/'
+_dataset = 'gfs_0p25/gfs'dateold'/gfs_0p25_'hourold'z'
+'sdfopen '_baseurl%_dataset
+if (rc) ; return ; endif
+*********************************************************
+*************Acquirng GFS Yeterdays Files*******************************************
+********************************************************
+
+'set lat 28 38'
+'set lon 67 83'
+'set t 3'
+'define hgtsfc = hgtsfc'
+'set t 3 13'
+'define apcpsfc = apcpsfc'
+'set sdfwrite -nc4 C:/OpenGrADS-2.2/gfs_0p25_'dateold'_'hourold'_pr.nc'
+'sdfwrite apcpsfc'
+'set sdfwrite -nc4 C:/OpenGrADS-2.2/gfs_0p25_'dateold'_'hourold'_hgtsfc.nc'
+'sdfwrite hgtsfc'
+'close 1'
+
+*********************************************************
+********************************************************
+********************************************************
+*********************************************************
+********************************************************
+********************************************************
+'reinit'
+'sdfopen C:/OpenGrADS-2.2/gfs_0p25_'date'_'hour'_pr.nc'
+'sdfopen C:/OpenGrADS-2.2/gfs_0p25_'date'_'hour'_hgtsfc.nc'
+'sdfopen C:/OpenGrADS-2.2/smith_sandwell_topo_v8_2.nc'
+'set display color white'
+'c'
+tm=1
+while(tm<=80)
+'set dfile 1'
+'set lat 28 38'
+'set lon 67 83'
+'set t 'tm
+'q time'
+waqt=subwrd(result,3)
+'define gfs=apcpsfc(t='tm+8')-apcpsfc(t='tm')'
+'define regfs=re(gfs,0.01,0.01)'
+'set dfile 2'
+'set lat 28 38'
+'set lon 67 83'
+'set t 1'
+'define modheight=hgtsfc'
+'define remodht=re(modheight,0.01,0.01)'
+'set dfile 3'
+'set lat 28 38'
+'set lon 67 83'
+'set z 1'
+'define retopo=re(rose.3(t=1),0.01,0.01)'
+'set grid off'
+'set gxout shaded'
+'set csmooth on'
+'set map 1 1 6'
+'set ylint 1'
+'set xlopts 1 5 0.15'
+'set ylopts 1 5 0.15'
+*'C:/OpenGrADS-2.2/color 0 200 1 -kind white->gray->cyan->dodgerblue->blue->lime->green->darkgreen->yellow->goldenrod->orange->firebrick->red->darkred->fuchsia->indigo'
+'C:/OpenGrADS-2.2/color 0 100 1 -kind white->gray->lime->yellow->goldenrod->orange->firebrick->red->darkred->fuchsia->indigo'
+*'C:/OpenGrADS-2.2/colormaps_v2 -flipped -l 0 200 1 -map Ocean'
+
+******immerzeel_2012_and_Lutz_2016*************
+'define pxy=regfs(t=1)*(1+((retopo(t=1)-remodht(t=1))*0.21*0.01))'
+'define pospxy=maskout(pxy(t=1),pxy(t=1))'
+'d pospxy'
+'set strsiz 0.07'
+'set string 1 c 6'
+* Mangla
+'query w2xy 73.64 33.14'
+x_a = subwrd(result,3)
+y_a = subwrd(result,6)
+'draw string 'x_a' 'y_a' MANGLA'
+
+* Tarbella
+'query w2xy 72.69 34.08'
+x_a = subwrd(result,3)
+y_a = subwrd(result,6)
+'draw string 'x_a' 'y_a' TARBELLA'
+
+**'C:/OpenGrADS-2.2/xcbar.gs -fs 1 -fh 0.2'
+'C:/OpenGrADS-2.2/xcbar.gs -fs 10'
+*'C:/OpenGrADS-2.2/xcbar.gs -fs 10'
+'set line 1 1 10'
+'draw shp C:/OpenGrADS-2.2/basins_union/basins_union.shp'
+'set line 4 1 5'
+*'draw shp C:/OpenGrADS-2.2/rivers_world_47950/rivers_world_47950.shp'
+'draw shp C:/OpenGrADS-2.2/tufts-pakistanrivers10-shapefile/GISPORTAL_GISOWNER01_PAKISTANRIVERS10Line.shp'
+'draw title GFSPLUS Pr Forecast (mm) 'waqt
+'printim C:/OpenGrADS-2.2/gfs_plus/gfs_plus_pr_'waqt'_.png x2000 y2000 white'
+'c'
+
+'set grid off'
+'set gxout shaded'
+'set csmooth on'
+'set map 1 1 6'
+'set ylint 1'
+'set xlopts 1 5 0.15'
+'set ylopts 1 5 0.15'
+*'C:/OpenGrADS-2.2/color 0 200 1 -kind white->gray->cyan->dodgerblue->blue->lime->green->darkgreen->yellow->goldenrod->orange->firebrick->red->darkred->fuchsia->indigo'
+'C:/OpenGrADS-2.2/color 0 100 1 -kind white->gray->lime->yellow->goldenrod->orange->firebrick->red->darkred->fuchsia->indigo'
+*'C:/OpenGrADS-2.2/colormaps_v2 -flipped -l 0 200 1 -map Ocean'
+'d regfs'
+'set strsiz 0.07'
+'set string 1 c 6'
+* Mangla
+'query w2xy 73.64 33.14'
+x_a = subwrd(result,3)
+y_a = subwrd(result,6)
+'draw string 'x_a' 'y_a' MANGLA'
+
+* Tarbella
+'query w2xy 72.69 34.08'
+x_a = subwrd(result,3)
+y_a = subwrd(result,6)
+'draw string 'x_a' 'y_a' TARBELLA'
+
+**'C:/OpenGrADS-2.2/xcbar.gs -fs 1 -fh 0.2'
+'C:/OpenGrADS-2.2/xcbar.gs -fs 10'
+*'C:/OpenGrADS-2.2/xcbar.gs -fs 10'
+'set line 1 1 10'
+'draw shp C:/OpenGrADS-2.2/basins_union/basins_union.shp'
+'set line 4 1 5'
+*'draw shp C:/OpenGrADS-2.2/rivers_world_47950/rivers_world_47950.shp'
+'draw shp C:/OpenGrADS-2.2/tufts-pakistanrivers10-shapefile/GISPORTAL_GISOWNER01_PAKISTANRIVERS10Line.shp'
+'draw title GFS Pr Forecast (mm) 'waqt
+'printim C:/OpenGrADS-2.2/gfs_raw/gfs_raw_pr_'waqt'_.png x2000 y2000 white'
+'c'
+tm=tm+8
+endwhile
+*****************************************
+**************Vaidation********************
+*****************************************
+'reinit'
+'sdfopen C:/OpenGrADS-2.2/gfs_0p25_'dateold'_'hourold'_pr.nc'
+'sdfopen C:/OpenGrADS-2.2/gfs_0p25_'dateold'_'hourold'_hgtsfc.nc'
+'sdfopen C:/OpenGrADS-2.2/smith_sandwell_topo_v8_2.nc'
+'sdfopen C:/OpenGrADS-2.2/3B-DAY-E.MS.MRG.3IMERG.'date'-S000000-E235959.V06.nc4'
+'set display color white'
+'c'
+'set dfile 1'
+'set lat 28 38'
+'set lon 67 83'
+'define gfs=apcpsfc(t=9)-apcpsfc(t=1)'
+'define regfs=re(gfs(t=1),0.01,0.01)'
+'set dfile 2'
+'set lat 28 38'
+'set lon 67 83'
+'set t 1'
+'define modheight=hgtsfc'
+'define remodht=re(modheight(t=1),0.01,0.01)'
+'set dfile 3'
+'set lat 28 38'
+'set lon 67 83'
+'set z 1'
+'define retopo=re(rose.3(t=1),0.01,0.01)'
+'set dfile 4'
+'set lat 28 38'
+'set lon 67 83'
+'set t 1'
+'q time'
+waqt=subwrd(result,3)
+'define regpm=re(precipitationca.4(t=1),0.01,0.01)'
+
+******immerzeel_2012_and_Lutz_2016*************
+'define pxy=regfs(t=1)*(1+((retopo(t=1)-remodht(t=1))*0.21*0.01))'
+'define pospxy=maskout(pxy(t=1),pxy(t=1))'
+'C:/OpenGrADS-2.2/mul.gs 1 2 1 2 -ywid 4'
+'set grid off'
+'set gxout shaded'
+'set csmooth on'
+'set map 1 1 6'
+'set ylint 1'
+'set xlopts 1 5 0.15'
+'set ylopts 1 5 0.15'
+*'C:/OpenGrADS-2.2/color 0 200 1 -kind white->gray->cyan->dodgerblue->blue->lime->green->darkgreen->yellow->goldenrod->orange->firebrick->red->darkred->fuchsia->indigo'
+'C:/OpenGrADS-2.2/color 0 50 1 -kind white->gray->cyan->lime->yellow->goldenrod->orange->firebrick->red->darkred->fuchsia->indigo'
+*'C:/OpenGrADS-2.2/colormaps_v2 -flipped -l 0 200 1 -map Ocean'
+'d pospxy'
+'set strsiz 0.07'
+'set string 1 c 6'
+* Mangla
+'query w2xy 73.64 33.14'
+x_a = subwrd(result,3)
+y_a = subwrd(result,6)
+'draw string 'x_a' 'y_a' MANGLA'
+
+* Tarbella
+'query w2xy 72.69 34.08'
+x_a = subwrd(result,3)
+y_a = subwrd(result,6)
+'draw string 'x_a' 'y_a' TARBELLA'
+
+**'C:/OpenGrADS-2.2/xcbar.gs -fs 1 -fh 0.2'
+*'C:/OpenGrADS-2.2/xcbar.gs -fs 10'
+*'C:/OpenGrADS-2.2/xcbar.gs -fs 10'
+'set line 1 1 10'
+'draw shp C:/OpenGrADS-2.2/basins_union/basins_union.shp'
+'set line 4 1 5'
+*'draw shp C:/OpenGrADS-2.2/rivers_world_47950/rivers_world_47950.shp'
+'draw shp C:/OpenGrADS-2.2/tufts-pakistanrivers10-shapefile/GISPORTAL_GISOWNER01_PAKISTANRIVERS10Line.shp'
+'draw title GFSPLUS Pr Forecast (mm) 'waqt
+'C:/OpenGrADS-2.2/mul.gs 1 2 1 1 -ywid 4'
+'set grid off'
+'set gxout shaded'
+'set csmooth on'
+'set map 1 1 6'
+'set ylint 1'
+'set xlopts 1 5 0.15'
+'set ylopts 1 5 0.15'
+*'C:/OpenGrADS-2.2/color 0 200 1 -kind white->gray->cyan->dodgerblue->blue->lime->green->darkgreen->yellow->goldenrod->orange->firebrick->red->darkred->fuchsia->indigo'
+'C:/OpenGrADS-2.2/color 0 50 1 -kind white->gray->cyan->lime->yellow->goldenrod->orange->firebrick->red->darkred->fuchsia->indigo'
+*'C:/OpenGrADS-2.2/colormaps_v2 -flipped -l 0 200 1 -map Ocean'
+'d regpm(t=1)'
+'set strsiz 0.07'
+'set string 1 c 6'
+* Mangla
+'query w2xy 73.64 33.14'
+x_a = subwrd(result,3)
+y_a = subwrd(result,6)
+'draw string 'x_a' 'y_a' MANGLA'
+
+* Tarbella
+'query w2xy 72.69 34.08'
+x_a = subwrd(result,3)
+y_a = subwrd(result,6)
+'draw string 'x_a' 'y_a' TARBELLA'
+
+**'C:/OpenGrADS-2.2/xcbar.gs -fs 1 -fh 0.2'
+'C:/OpenGrADS-2.2/xcbar.gs -fs 10'
+*'C:/OpenGrADS-2.2/xcbar.gs -fs 10'
+'set line 1 1 10'
+'draw shp C:/OpenGrADS-2.2/basins_union/basins_union.shp'
+'set line 4 1 5'
+*'draw shp C:/OpenGrADS-2.2/rivers_world_47950/rivers_world_47950.shp'
+'draw shp C:/OpenGrADS-2.2/tufts-pakistanrivers10-shapefile/GISPORTAL_GISOWNER01_PAKISTANRIVERS10Line.shp'
+'draw title GPM Pr Thencast (mm) 'waqt
+'printim C:/OpenGrADS-2.2/gpm_pr_'waqt'_.png x2000 y2000 white'
+***************************************************
+*************data_extraction**************************
+***************************************************
+'reinit'
+'sdfopen C:/OpenGrADS-2.2/gfs_0p25_'date'_'hour'_pr.nc'
+'sdfopen C:/OpenGrADS-2.2/gfs_0p25_'date'_'hour'_hgtsfc.nc'
+'sdfopen C:/OpenGrADS-2.2/smith_sandwell_topo_v8_2.nc'
+'open C:/OpenGrADS-2.2/basins_union/kabul.ctl'
+'open C:/OpenGrADS-2.2/basins_union/indus.ctl'
+'open C:/OpenGrADS-2.2/basins_union/jhelum.ctl'
+'open C:/OpenGrADS-2.2/basins_union/chenab.ctl'
+'open C:/OpenGrADS-2.2/basins_union/ravi.ctl'
+'open C:/OpenGrADS-2.2/basins_union/sutlej.ctl'
+'set display color white'
+'c'
+box=write('C:/OpenGrADS-2.2/gfs_plus/gfs_'date'_average_and_max.csv','date,kabul_ave_plus,kabul_max_plus,indus_ave_plus,indus_max_plus,jhelum_ave_plus,jhelum_max_plus,chenab_ave_plus,chenab_max_plus,ravi_ave_plus,ravi_max_plus,sutlej_ave_plus,sutlej_max_plus',append)
+tm=1
+while(tm<=80)
+'set dfile 1'
+'set lat 28 38'
+'set lon 67 83'
+'set t 'tm
+'q time'
+waqt=subwrd(result,3)
+'define gfs=apcpsfc(t='tm+8')-apcpsfc(t='tm')'
+'define regfs=re(gfs,0.01,0.01)'
+'set dfile 2'
+'set lat 28 38'
+'set lon 67 83'
+'set t 1'
+'define modheight=hgtsfc'
+'define remodht=re(modheight,0.01,0.01)'
+'set dfile 3'
+'set lat 28 38'
+'set lon 67 83'
+'set z 1'
+'define retopo=re(rose.3(t=1),0.01,0.01)'
+'define rekabulmask=re(mask.4(t=1),0.01,0.01)'
+'define reindusmask=re(mask.5(t=1),0.01,0.01)'
+'define rejhelummask=re(mask.6(t=1),0.01,0.01)'
+'define rechenabmask=re(mask.7(t=1),0.01,0.01)'
+'define reravimask=re(mask.8(t=1),0.01,0.01)'
+'define resutlejmask=re(mask.9(t=1),0.01,0.01)'
+
+******immerzeel_2012_and_Lutz_2016*************
+'define pxy=regfs(t=1)*(1+((retopo(t=1)-remodht(t=1))*0.21*0.01))'
+'define pospxy=maskout(pxy(t=1),pxy(t=1))'
+'set lat 28 38'
+'set lon 67 83'
+'define kabulavep=aave(maskout(pospxy(t=1),rekabulmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define kabulmaxp=amax(maskout(pospxy(t=1),rekabulmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define indusavep=aave(maskout(pospxy(t=1),reindusmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define indusmaxp=amax(maskout(pospxy(t=1),reindusmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define jhelumavep=aave(maskout(pospxy(t=1),rejhelummask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define jhelummaxp=amax(maskout(pospxy(t=1),rejhelummask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define chenabavep=aave(maskout(pospxy(t=1),rechenabmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define chenabmaxp=amax(maskout(pospxy(t=1),rechenabmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define raviavep=aave(maskout(pospxy(t=1),reravimask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define ravimaxp=amax(maskout(pospxy(t=1),reravimask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define sutlejavep=aave(maskout(pospxy(t=1),resutlejmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define sutlejmaxp=amax(maskout(pospxy(t=1),resutlejmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+**********************************************************************
+
+*********************************************************************
+
+'d kabulavep'
+kabulavplus=subwrd(result,4)
+'d kabulmaxp'
+kabulmxplus=subwrd(result,4)
+'d indusavep'
+indusavplus=subwrd(result,4)
+'d indusmaxp'
+indusmxplus=subwrd(result,4)
+'d jhelumavep'
+jhelumavplus=subwrd(result,4)
+'d jhelummaxp'
+jhelummxplus=subwrd(result,4)
+'d chenabavep'
+chenabavplus=subwrd(result,4)
+'d chenabmaxp'
+chenabmxplus=subwrd(result,4)
+'d raviavep'
+raviavplus=subwrd(result,4)
+'d ravimaxp'
+ravimxplus=subwrd(result,4)
+'d sutlejavep'
+sutlejavplus=subwrd(result,4)
+'d sutlejmaxp'
+sutlejmxplus=subwrd(result,4)
+
+*****************************************************************************
+box=write('C:/OpenGrADS-2.2/gfs_plus/gfs_'date'_average_and_max.csv',waqt','kabulavplus','kabulmxplus','indusavplus','indusmxplus','jhelumavplus','jhelummxplus','chenabavplus','chenabmxplus','raviavplus','ravimxplus','sutlejavplus','sutlejmxplus,append)
+
+tm=tm+8
+endwhile
+
+*****************************************************************************
+************validation_via_extracted_values******************
+*****************************************************************************
+***************************************************
+*************data_extraction**************************
+***************************************************
+'reinit'
+'sdfopen C:/OpenGrADS-2.2/gfs_0p25_'dateold'_'hourold'_pr.nc'
+'sdfopen C:/OpenGrADS-2.2/gfs_0p25_'dateold'_'hourold'_hgtsfc.nc'
+'sdfopen C:/OpenGrADS-2.2/smith_sandwell_topo_v8_2.nc'
+'open C:/OpenGrADS-2.2/basins_union/kabul.ctl'
+'open C:/OpenGrADS-2.2/basins_union/indus.ctl'
+'open C:/OpenGrADS-2.2/basins_union/jhelum.ctl'
+'open C:/OpenGrADS-2.2/basins_union/chenab.ctl'
+'open C:/OpenGrADS-2.2/basins_union/ravi.ctl'
+'open C:/OpenGrADS-2.2/basins_union/sutlej.ctl'
+'sdfopen C:/OpenGrADS-2.2/3B-DAY-E.MS.MRG.3IMERG.'date'-S000000-E235959.V06.nc4'
+'set display color white'
+'c'
+box=write('C:/OpenGrADS-2.2/gfs_plus/gfs_gpm_'date'_avg_max_comparison.csv','date,kabul_ave_plus,kabul_ave_gpm,kabul_max_plus,kabul_max_gpm,indus_ave_plus,indus_ave_gpm,indus_max_plus,indus_max_gpm,jhelum_ave_plus,jhelum_ave_gpm,jhelum_max_plus,jhelum_max_gpm,chenab_ave_plus,chenab_ave_gpm,chenab_max_plus,chenab_max_gpm,ravi_ave_plus,ravi_ave_gpm,ravi_max_plus,ravi_max_gpm,sutlej_ave_plus,sutlej_ave_gpm,sutlej_max_plus,sutlej_max_gpm',append)
+'set dfile 1'
+'set lat 28 38'
+'set lon 67 83'
+'set t 'tm
+'q time'
+waqt=subwrd(result,3)
+'define gfs=apcpsfc(t=9)-apcpsfc(t=1)'
+'define regfs=re(gfs,0.01,0.01)'
+'set dfile 2'
+'set lat 28 38'
+'set lon 67 83'
+'set t 1'
+'define modheight=hgtsfc'
+'define remodht=re(modheight,0.01,0.01)'
+'set dfile 3'
+'set lat 28 38'
+'set lon 67 83'
+'set z 1'
+'define retopo=re(rose.3(t=1),0.01,0.01)'
+'set dfile 10'
+'set lat 28 38'
+'set lon 67 83'
+'set t 1'
+'q time'
+waqt=subwrd(result,3)
+'define regpm=re(precipitationca.10(t=1),0.01,0.01)'
+
+'define rekabulmask=re(mask.4(t=1),0.01,0.01)'
+'define reindusmask=re(mask.5(t=1),0.01,0.01)'
+'define rejhelummask=re(mask.6(t=1),0.01,0.01)'
+'define rechenabmask=re(mask.7(t=1),0.01,0.01)'
+'define reravimask=re(mask.8(t=1),0.01,0.01)'
+'define resutlejmask=re(mask.9(t=1),0.01,0.01)'
+
+******immerzeel_2012_and_Lutz_2016*************
+'define pxy=regfs(t=1)*(1+((retopo(t=1)-remodht(t=1))*0.21*0.01))'
+'define pospxy=maskout(pxy(t=1),pxy(t=1))'
+'set lat 28 38'
+'set lon 67 83'
+
+'define kabulavep=aave(maskout(pospxy(t=1),rekabulmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define kabulmaxp=amax(maskout(pospxy(t=1),rekabulmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define indusavep=aave(maskout(pospxy(t=1),reindusmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define indusmaxp=amax(maskout(pospxy(t=1),reindusmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define jhelumavep=aave(maskout(pospxy(t=1),rejhelummask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define jhelummaxp=amax(maskout(pospxy(t=1),rejhelummask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define chenabavep=aave(maskout(pospxy(t=1),rechenabmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define chenabmaxp=amax(maskout(pospxy(t=1),rechenabmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define raviavep=aave(maskout(pospxy(t=1),reravimask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define ravimaxp=amax(maskout(pospxy(t=1),reravimask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define sutlejavep=aave(maskout(pospxy(t=1),resutlejmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define sutlejmaxp=amax(maskout(pospxy(t=1),resutlejmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+**************
+**************
+
+'define kabulavegpm=aave(maskout(regpm(t=1),rekabulmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define kabulmaxgpm=amax(maskout(regpm(t=1),rekabulmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define indusavegpm=aave(maskout(regpm(t=1),reindusmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define indusmaxgpm=amax(maskout(regpm(t=1),reindusmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define jhelumavegpm=aave(maskout(regpm(t=1),rejhelummask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define jhelummaxgpm=amax(maskout(regpm(t=1),rejhelummask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define chenabavegpm=aave(maskout(regpm(t=1),rechenabmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define chenabmaxgpm=amax(maskout(regpm(t=1),rechenabmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define raviavegpm=aave(maskout(regpm(t=1),reravimask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define ravimaxgpm=amax(maskout(regpm(t=1),reravimask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+'define sutlejavegpm=aave(maskout(regpm(t=1),resutlejmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+'define sutlejmaxgpm=amax(maskout(regpm(t=1),resutlejmask(t=1)),lon=67,lon=83,lat=28,lat=38)'
+
+
+**********************************************************************
+
+*********************************************************************
+
+'d kabulavegpm'
+kabulavgpm=subwrd(result,4)
+'d kabulmaxgpm'
+kabulmxgpm=subwrd(result,4)
+'d indusavegpm'
+indusavgpm=subwrd(result,4)
+'d indusmaxgpm'
+indusmxgpm=subwrd(result,4)
+'d jhelumavegpm'
+jhelumavgpm=subwrd(result,4)
+'d jhelummaxgpm'
+jhelummxgpm=subwrd(result,4)
+'d chenabavegpm'
+chenabavgpm=subwrd(result,4)
+'d chenabmaxgpm'
+chenabmxgpm=subwrd(result,4)
+'d raviavegpm'
+raviavgpm=subwrd(result,4)
+'d ravimaxgpm'
+ravimxgpm=subwrd(result,4)
+'d sutlejavegpm'
+sutlejavgpm=subwrd(result,4)
+'d sutlejmaxgpm'
+sutlejmxgpm=subwrd(result,4)
+
+******************
+******************
+
+'d kabulavep'
+kabulavplus=subwrd(result,4)
+'d kabulmaxp'
+kabulmxplus=subwrd(result,4)
+'d indusavep'
+indusavplus=subwrd(result,4)
+'d indusmaxp'
+indusmxplus=subwrd(result,4)
+'d jhelumavep'
+jhelumavplus=subwrd(result,4)
+'d jhelummaxp'
+jhelummxplus=subwrd(result,4)
+'d chenabavep'
+chenabavplus=subwrd(result,4)
+'d chenabmaxp'
+chenabmxplus=subwrd(result,4)
+'d raviavep'
+raviavplus=subwrd(result,4)
+'d ravimaxp'
+ravimxplus=subwrd(result,4)
+'d sutlejavep'
+sutlejavplus=subwrd(result,4)
+'d sutlejmaxp'
+sutlejmxplus=subwrd(result,4)
+
+*****************************************************************************
+box=write('C:/OpenGrADS-2.2/gfs_plus/gfs_gpm_'date'_avg_max_comparison.csv',waqt','kabulavplus','kabulavgpm','kabulmxplus','kabulmxgpm','indusavplus','indusavgpm','indusmxplus','indusmxgpm','jhelumavplus','jhelumavgpm','jhelummxplus','jhelummxgpm','chenabavplus','chenabavgpm','chenabmxplus','chenabmxgpm','raviavplus','raviavgpm','ravimxplus','ravimxgpm','sutlejavplus','sutlejavgpm','sutlejmxplus','sutlejmxgpm,append)
+
+
+
